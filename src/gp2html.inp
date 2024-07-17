@@ -1,0 +1,146 @@
+function void print_container_style (const bundle self)
+    /* This function prints the CSS style for the plot container. */
+
+        # This plots-grid section centres the plots
+        print "    .plots-container { display: flex; flex-wrap: wrap; justify-content: space-around; }"
+
+        print "        .plot-container {"
+        /* adds space below each plot container */
+        print "             max-width: 100%;"
+        printf "            margin-bottom: %gpx;\n", self.margin_bottom
+        print "             /* Adjusts the base size of each container before filling the row */"
+        /* sets the initial size of the container before it's adjusted to fill the row */
+        printf "            flex-basis: %g\%;", 100
+        #print "             display: flex;"
+        print "             width: 48%;" /* DON'T CHANGE Width of container relative to its parent container */
+        print "             flex-direction: column;" # puts the title above the plot
+        print "             flex-wrap: wrap;"
+        print "             justify-content: space-around;"
+        print "        }"
+end function
+
+
+function void print_head (const bundle self)
+    /* This function prints the head section of an HTML file */
+
+    print "<head>"
+    print "    <meta charset=\"UTF-8\">"
+    print "    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">"
+    printf "    <title>%s</title>\n", self.global_title
+    print "    <style>"
+    print_container_style(self)
+    print "        svg {"
+    print "             max-width: 100%;"
+    print "             height: auto;"
+    print "        }"
+    print "    </style>"
+    print "</head>"
+
+end function
+
+
+function void print_howto (void)
+    /* This function prints a list of instructions on how to interact with the plots */
+
+    print "<ul>"  # start an unordered list
+    print "    <li>Left click to enable mouse tracking</li>"
+    print "    <li>Drag with left mouse</li>"
+    print "    <li>Zoom with mouse wheel & Shift </li>"
+    print "    <li>Right click to reset plot</li>"
+    print "    <li>Click on the figure legend text to toggle plot elements on/off</li>"
+    print "    <li>Click on the grid icon to toggle the grid on/off</li>"
+    print "</ul>"
+end function
+
+
+function void print_plot_container (const bundle self)
+    /* This function prints a container for each plot in the bundle */
+
+    if !self.single_column
+        print "<div class=\"plots-container\">"  # activating this, yields a single column
+    endif
+
+    loop i=1..nelem(self.filenames)
+        print "<div class=\"plot-container\">"
+        if exists(self.titles)
+            printf "    <h2>%s</h2>\n", self.titles[i]
+        else
+            printf "    <h2>Plot %d</h2>\n", i
+        endif
+        printf "    <object type=\"image/svg+xml\" data=\"%s\">\n", self.filenames[i]
+        print "        Your browser does not support SVG"
+        print "    </object>"
+        print "</div>"
+    endloop
+
+    if !self.single_column
+        print "</div>"
+    endif
+end function
+
+
+function bundle default_values (void)
+    /* This function returns a bundle with default values for the gp2html function */
+
+    bundle self
+    string self.note = ""
+    string self.global_title = "Overview of plots"
+    scalar self.margin_bottom = 20
+    #scalar self.max_width = 100
+    #scalar self.scale = 25
+    scalar self.show_howto = TRUE
+    scalar self.single_column = FALSE
+
+    return self
+end function
+
+
+function void gp2html (const strings filenames,
+                       const string output_file,
+                       bundle opts[null])
+    /* This function prints the content of an HTML file with SVG plots embedded as objects
+
+    Parameters:
+    filenames - A string array containing the filenames of the SVG plots to be embedded
+    output_file - A string specifying the name of the output HTML file
+    opts - A bundle containing optional parameters to customize the appearance of the HTML file
+    */
+
+    errorif(nelem(filenames) == 0, "No filenames provided")
+
+    if !exists(opts)
+        bundle opts = defbundle()
+    endif
+    bundle self = default_values()
+    self = opts + self          # override defaults by opts
+    self.filenames = filenames
+
+    errorif(exists(self.titles) && nelem(self.titles) != nelem(filenames),
+            "Number of titles does not match number of filenames")
+
+    outfile "@output_file"
+        print "<!DOCTYPE html>"
+        print "<html lang=\"en\">"
+        print_head(self)
+        print "<body>"
+        printf "    <h1>%s</h1>\n", self.global_title
+
+        if self.show_howto
+            print_howto()
+        endif
+        if nelem(self.note)
+            printf "    <p>%s</p>\n", self.note
+        endif
+
+        if self.single_column
+            print "<div class=\"plots-grid\">"
+        endif
+        print_plot_container(self)
+
+        if self.single_column
+            printf "</div>\n"
+        endif
+        print "</body>"
+        print "</html>"
+    end outfile
+end function

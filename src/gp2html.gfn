@@ -1,0 +1,251 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gretl-functions>
+<gretl-function-package name="gp2html" minver="2024a">
+<author email="atecon@posteo.de">Artur Tarassow</author>
+<version>0.1</version>
+<date>2024-07-17</date>
+<description>K-nearest neighbor regression and classification</description>
+<tags>C14 C38</tags>
+<help filename="gp2html_help.md">
+# gp2html Gretl Package
+
+The `gp2html` package provides a simple yet powerful way to generate HTML files that embed SVG plots, making it easier to share and view graphical representations of data analysis results. This package is particularly useful for users looking to present their Gretl-generated plots in a web-friendly format.
+
+Please report any issues or suggestions on the Gretl mailing list or GitHub page: https://github.com/atecon/gp2html .
+
+## Installation
+
+To install the `gp2html` package, use the Gretl package manager or the following command:
+
+```hansl
+pkg install gp2html
+```
+
+## Pre-requisites
+You need a working gnuplot installation to generate the SVG files first. In order to add interactivity to the plots on the html-website, you
+
+
+# Public Functions
+
+The primary function exposed by this package is `gp2html`, which generates an HTML file containing embedded SVG plots.
+
+### Syntax
+
+```gretl
+gp2html(filenames, output_file, opts[null])
+```
+
+*Parameters:*
+
+- `filenames`: *string array*, The names of the SVG files to embed in the HTML file.
+- `output_file`: *string*, The name of the output HTML file. Must have an `.html` extension.
+- `opts`: *bundle*, A bundle of options to customize the appearance of the HTML file.
+
+
+The `opts` bundle can contain the following options:
+
+- `global_title`: *string*, The title of the HTML file. Default is &quot;Overview of plots&quot;.
+- `margin_bottom`: *scalar*, The bottom margin in pixels. Default is `20`.
+- `note`: *string*, Add a note to the HTML file at the top below the title. Per default no note is shown.
+- `show_howto`: *bool*, Whether to show the &quot;How to use&quot; section. Default is `TRUE`.
+- `single_column`: *bool*, Whether to display the plots in a single columns. Default is `FALSE`.
+- `titles`: *string array*, The titles of the plots. If present, the number of titles must match the number of SVG files.
+
+
+# Change Log
+
+- v0.1 (July 2024): Initial release.
+</help>
+<gretl-function name="gp2html" type="void">
+ <params count="3">
+  <param name="filenames" type="strings" const="true"/>
+  <param name="output_file" type="string" const="true"/>
+  <param name="opts" type="bundle" optional="true"/>
+ </params>
+<code>/* This function prints the content of an HTML file with SVG plots embedded as objects
+
+Parameters:
+filenames - A string array containing the filenames of the SVG plots to be embedded
+output_file - A string specifying the name of the output HTML file
+opts - A bundle containing optional parameters to customize the appearance of the HTML file
+*/
+
+errorif(nelem(filenames) == 0, &quot;No filenames provided&quot;)
+
+if !exists(opts)
+  bundle opts = defbundle()
+endif
+bundle self = default_values()
+self = opts + self          # override defaults by opts
+self.filenames = filenames
+
+errorif(exists(self.titles) &amp;&amp; nelem(self.titles) != nelem(filenames), &quot;Number of titles does not match number of filenames&quot;)
+
+outfile &quot;@output_file&quot;
+  print &quot;&lt;!DOCTYPE html&gt;&quot;
+  print &quot;&lt;html lang=\&quot;en\&quot;&gt;&quot;
+  print_head(self)
+  print &quot;&lt;body&gt;&quot;
+  printf &quot;    &lt;h1&gt;%s&lt;/h1&gt;\n&quot;, self.global_title
+
+  if self.show_howto
+    print_howto()
+  endif
+  if nelem(self.note)
+    printf &quot;    &lt;p&gt;%s&lt;/p&gt;\n&quot;, self.note
+  endif
+
+  if self.single_column
+    print &quot;&lt;div class=\&quot;plots-grid\&quot;&gt;&quot;
+  endif
+  print_plot_container(self)
+
+  if self.single_column
+    printf &quot;&lt;/div&gt;\n&quot;
+  endif
+  print &quot;&lt;/body&gt;&quot;
+  print &quot;&lt;/html&gt;&quot;
+end outfile
+</code>
+</gretl-function>
+<gretl-function name="print_container_style" type="void" private="1">
+ <params count="1">
+  <param name="self" type="bundle" const="true"/>
+ </params>
+<code>/* This function prints the CSS style for the plot container. */
+
+# This plots-grid section centres the plots
+print &quot;    .plots-container { display: flex; flex-wrap: wrap; justify-content: space-around; }&quot;
+
+print &quot;        .plot-container {&quot;
+/* adds space below each plot container */
+print &quot;             max-width: 100%;&quot;
+printf &quot;            margin-bottom: %gpx;\n&quot;, self.margin_bottom
+print &quot;             /* Adjusts the base size of each container before filling the row */&quot;
+/* sets the initial size of the container before it's adjusted to fill the row */
+printf &quot;            flex-basis: %g\%;&quot;, 100
+#print &quot;             display: flex;&quot;
+print &quot;             width: 48%;&quot; /* DON'T CHANGE Width of container relative to its parent container */
+print &quot;             flex-direction: column;&quot; # puts the title above the plot
+print &quot;             flex-wrap: wrap;&quot;
+print &quot;             justify-content: space-around;&quot;
+print &quot;        }&quot;
+</code>
+</gretl-function>
+<gretl-function name="print_head" type="void" private="1">
+ <params count="1">
+  <param name="self" type="bundle" const="true"/>
+ </params>
+<code>/* This function prints the head section of an HTML file */
+
+print &quot;&lt;head&gt;&quot;
+print &quot;    &lt;meta charset=\&quot;UTF-8\&quot;&gt;&quot;
+print &quot;    &lt;meta name=\&quot;viewport\&quot; content=\&quot;width=device-width, initial-scale=1.0\&quot;&gt;&quot;
+printf &quot;    &lt;title&gt;%s&lt;/title&gt;\n&quot;, self.global_title
+print &quot;    &lt;style&gt;&quot;
+print_container_style(self)
+print &quot;        svg {&quot;
+print &quot;             max-width: 100%;&quot;
+print &quot;             height: auto;&quot;
+print &quot;        }&quot;
+print &quot;    &lt;/style&gt;&quot;
+print &quot;&lt;/head&gt;&quot;
+</code>
+</gretl-function>
+<gretl-function name="print_howto" type="void" private="1">
+<code>/* This function prints a list of instructions on how to interact with the plots */
+
+print &quot;&lt;ul&gt;&quot;  # start an unordered list
+print &quot;    &lt;li&gt;Left click to enable mouse tracking&lt;/li&gt;&quot;
+print &quot;    &lt;li&gt;Drag with left mouse&lt;/li&gt;&quot;
+print &quot;    &lt;li&gt;Zoom with mouse wheel &amp; Shift &lt;/li&gt;&quot;
+print &quot;    &lt;li&gt;Right click to reset plot&lt;/li&gt;&quot;
+print &quot;    &lt;li&gt;Click on the figure legend text to toggle plot elements on/off&lt;/li&gt;&quot;
+print &quot;    &lt;li&gt;Click on the grid icon to toggle the grid on/off&lt;/li&gt;&quot;
+print &quot;&lt;/ul&gt;&quot;
+</code>
+</gretl-function>
+<gretl-function name="print_plot_container" type="void" private="1">
+ <params count="1">
+  <param name="self" type="bundle" const="true"/>
+ </params>
+<code>/* This function prints a container for each plot in the bundle */
+
+if !self.single_column
+  print &quot;&lt;div class=\&quot;plots-container\&quot;&gt;&quot;  # activating this, yields a single column
+endif
+
+loop i=1..nelem(self.filenames)
+  print &quot;&lt;div class=\&quot;plot-container\&quot;&gt;&quot;
+  if exists(self.titles)
+    printf &quot;    &lt;h2&gt;%s&lt;/h2&gt;\n&quot;, self.titles[i]
+  else
+    printf &quot;    &lt;h2&gt;Plot %d&lt;/h2&gt;\n&quot;, i
+  endif
+  printf &quot;    &lt;object type=\&quot;image/svg+xml\&quot; data=\&quot;%s\&quot;&gt;\n&quot;, self.filenames[i]
+  print &quot;        Your browser does not support SVG&quot;
+  print &quot;    &lt;/object&gt;&quot;
+  print &quot;&lt;/div&gt;&quot;
+endloop
+
+if !self.single_column
+  print &quot;&lt;/div&gt;&quot;
+endif
+</code>
+</gretl-function>
+<gretl-function name="default_values" type="bundle" private="1">
+<code>/* This function returns a bundle with default values for the gp2html function */
+
+bundle self
+string self.note = &quot;&quot;
+string self.global_title = &quot;Overview of plots&quot;
+scalar self.margin_bottom = 20
+#scalar self.max_width = 100
+#scalar self.scale = 25
+scalar self.show_howto = TRUE
+scalar self.single_column = FALSE
+
+return self
+</code>
+</gretl-function>
+<sample-script>
+set verbose off
+set workdir &quot;/home/artur/git/gretl_webplot&quot;
+include gp2html.gfn
+
+open AWM18.gdt --quiet
+
+strings Filenames = empty
+
+# Generate the SVG plots
+list L = YER URX
+string filename = sprintf(&quot;plot1.svg&quot;)
+Filenames += filename
+gnuplot L --with-lines --time-series --output=&quot;@filename&quot;
+
+string filename = sprintf(&quot;plot2.svg&quot;)
+Filenames += filename
+gnuplot L --fit=linear --output=&quot;@filename&quot; { set title &quot;Linear Fit&quot;; set key bottom right;\
+    set terminal svg standalone mouse; set grid;}
+
+string filename = sprintf(&quot;plot3.svg&quot;)
+Filenames += filename
+gnuplot L --with-lines --time-series --output=&quot;@filename&quot; \
+  { set terminal svg mouse standalone; set grid; set key bottom right;}
+
+
+string filename = &quot;index_default.html&quot;
+gp2html(Filenames, filename)
+
+# Tweak some parameters
+bundle Params = _(global_title = &quot;Overview of plots&quot;,
+                  single_column = FALSE,
+                  titles = defarray(&quot;Not interactive&quot;, &quot;Interactive&quot;, &quot;Also interactive&quot;),
+                  note = &quot;Add some note below the top title&quot;,
+                  show_howto = FALSE)
+
+string filename = &quot;index_tweaked.html&quot;
+gp2html(Filenames, filename, Params)
+</sample-script>
+</gretl-function-package>
+</gretl-functions>
