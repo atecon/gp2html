@@ -1,6 +1,8 @@
 set verbose off
-set workdir "/home/artur/git/gretl_webplot"
 include gp2html.gfn
+
+# Set your own workdir for storing the generated files
+set workdir "/home/artur/git/gp2html"
 
 open AWM18.gdt --quiet
 
@@ -8,25 +10,31 @@ strings Filenames = empty
 
 # Generate the SVG plots
 list L = YER URX
+
+## non-interactive plot
 string filename = sprintf("plot1.svg")
 Filenames += filename
 gnuplot L --with-lines --time-series --output="@filename"
 
+## interactive plot
 string filename = sprintf("plot2.svg")
 Filenames += filename
 gnuplot L --fit=linear --output="@filename" { set title "Linear Fit"; set key bottom right;\
     set terminal svg standalone mouse; set grid;}
 
+## also interactive plot
 string filename = sprintf("plot3.svg")
 Filenames += filename
 gnuplot L --with-lines --time-series --output="@filename" \
   { set terminal svg mouse standalone; set grid; set key bottom right;}
 
 
+# Generate the HTML file
 string filename = "index_default.html"
 gp2html(Filenames, filename)
 
-# Tweak some parameters
+
+# Tweak some parameters and generate a HTML file again
 bundle Params = _(global_title = "Overview of plots",
                   single_column = FALSE,
                   titles = defarray("Not interactive", "Interactive", "Also interactive"),

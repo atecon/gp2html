@@ -4,8 +4,8 @@
 <author email="atecon@posteo.de">Artur Tarassow</author>
 <version>0.1</version>
 <date>2024-07-17</date>
-<description>K-nearest neighbor regression and classification</description>
-<tags>C14 C38</tags>
+<description>Create a html file for showing svg plots</description>
+<tags>C88</tags>
 <help filename="gp2html_help.md">
 # gp2html Gretl Package
 
@@ -22,7 +22,20 @@ pkg install gp2html
 ```
 
 ## Pre-requisites
-You need a working gnuplot installation to generate the SVG files first. In order to add interactivity to the plots on the html-website, you
+You need a working gnuplot installation to generate the SVG files first. In order to add interactivity to the plots on the html-website, you have to:
+
+- Store a plot as a svg file, and
+
+- to add some option to the terminal settings in the `gnuplot` or `plot` command in Gretl.
+
+For example:
+
+```hansl
+gnuplot L --with-lines --time-series --output=&quot;@filename&quot; \
+  { set terminal svg mouse standalone; set grid; set key bottom right;}
+```
+
+The magic happens in the `set terminal svg mouse standalone` part. This will add the necessary JavaScript code to the SVG file to make it interactive.
 
 
 # Public Functions
@@ -210,8 +223,10 @@ return self
 </gretl-function>
 <sample-script>
 set verbose off
-set workdir &quot;/home/artur/git/gretl_webplot&quot;
 include gp2html.gfn
+
+# Set your own workdir for storing the generated files
+set workdir &quot;/home/artur/git/gp2html&quot;
 
 open AWM18.gdt --quiet
 
@@ -219,25 +234,31 @@ strings Filenames = empty
 
 # Generate the SVG plots
 list L = YER URX
+
+## non-interactive plot
 string filename = sprintf(&quot;plot1.svg&quot;)
 Filenames += filename
 gnuplot L --with-lines --time-series --output=&quot;@filename&quot;
 
+## interactive plot
 string filename = sprintf(&quot;plot2.svg&quot;)
 Filenames += filename
 gnuplot L --fit=linear --output=&quot;@filename&quot; { set title &quot;Linear Fit&quot;; set key bottom right;\
     set terminal svg standalone mouse; set grid;}
 
+## also interactive plot
 string filename = sprintf(&quot;plot3.svg&quot;)
 Filenames += filename
 gnuplot L --with-lines --time-series --output=&quot;@filename&quot; \
   { set terminal svg mouse standalone; set grid; set key bottom right;}
 
 
+# Generate the HTML file
 string filename = &quot;index_default.html&quot;
 gp2html(Filenames, filename)
 
-# Tweak some parameters
+
+# Tweak some parameters and generate a HTML file again
 bundle Params = _(global_title = &quot;Overview of plots&quot;,
                   single_column = FALSE,
                   titles = defarray(&quot;Not interactive&quot;, &quot;Interactive&quot;, &quot;Also interactive&quot;),

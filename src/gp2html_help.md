@@ -13,7 +13,20 @@ pkg install gp2html
 ```
 
 ## Pre-requisites
-You need a working gnuplot installation to generate the SVG files first. In order to add interactivity to the plots on the html-website, you
+You need a working gnuplot installation to generate the SVG files first. In order to add interactivity to the plots on the html-website, you have to:
+
+- Store a plot as a svg file, and
+
+- to add some option to the terminal settings in the `gnuplot` or `plot` command in Gretl.
+
+For example:
+
+```hansl
+gnuplot L --with-lines --time-series --output="@filename" \
+  { set terminal svg mouse standalone; set grid; set key bottom right;}
+```
+
+The magic happens in the `set terminal svg mouse standalone` part. This will add the necessary JavaScript code to the SVG file to make it interactive.
 
 
 # Public Functions
