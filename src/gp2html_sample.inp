@@ -24,14 +24,23 @@ gnuplot L --fit=linear --output="@filename" { set title "Linear Fit"; set key bo
 
 
 ## also interactive plot but with jsdir being explicitly specified
-# string JSDIR = "/usr/local/share/gnuplot/5.4/js/"  # !! Does not work for me !!
-string JSDIR = "https://gnuplot.sourceforge.net/demo_svg_5.4"
+
+OPTION = 1  # select an option: 1 or 2
+
+if OPTION == 1  # use local jsdir
+  string JSDIR = "/usr/local/share/gnuplot/5.4/js/"  # ! Specify your local path !
+  string standalone_opt = "standalone"  # keyword needed
+
+elif OPTION == 2  # use online jsdir
+  string JSDIR = "https://gnuplot.sourceforge.net/demo_svg_5.4"  # Specify the online path
+  string standalone_opt = ""      # the keyword is not needed
+endif
 
 string filename = sprintf("plot3.svg")
 Filenames += filename
 
 gnuplot L --with-lines --time-series --output="@filename" \
-  { set terminal svg mouse jsdir "@JSDIR";\
+  { set terminal svg mouse @standalone_opt jsdir "@JSDIR";\
     set grid; set key bottom right;}
 
 
@@ -40,7 +49,7 @@ string filename = "index_default.html"
 gp2html(Filenames, filename)
 
 
-# Tweak some parameters and generate a HTML file again
+# Tweak some parameters and generate another HTML site
 bundle Params = _(global_title = "Overview of plots",
                   single_column = FALSE,
                   titles = defarray("Not interactive", "Interactive", "Also interactive"),
